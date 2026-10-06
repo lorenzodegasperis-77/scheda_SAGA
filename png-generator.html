@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAGA — Generatore PNG</title>
+<link rel="stylesheet" href="png-generator.css">
+</head>
+<body>
+<header class="top">
+  <h1>Generatore PNG</h1>
+  <p class="sub">SAGA — costruisci un Personaggio Non Giocante spendendo punti</p>
+</header>
+<main class="app">
+  <section class="panel" id="editor" aria-label="Costruzione del PNG">
+    <div id="points" class="points" aria-live="polite"></div>
+    <div id="form"></div>
+  </section>
+  <section class="side">
+    <div class="toolbar" id="toolbar"></div>
+    <article id="sheet" class="sheet" aria-label="Scheda del PNG"></article>
+    <details class="panel saved" open>
+      <summary>PNG salvati <span id="count"></span></summary>
+      <div id="list"></div>
+    </details>
+  </section>
+</main>
+<input type="file" id="file" accept=".json" hidden>
+<div id="toast" class="toast" role="status"></div>
+<script src="png-generator.js"></script>
+</body>
+</html>
