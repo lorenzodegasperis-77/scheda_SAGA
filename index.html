@@ -1,21 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SAGA — Scheda personaggio</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#253631">
+  <title>SAGA - Scheda personaggio</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="cn" viewBox="0 0 60 60">
-    <path d="M2 2h42l-9 9H11v24l-9 9z" fill="#2d2d2d"/>
-    <path d="M15 15h24l-6 6H21v14l-6 6z" fill="#fff" stroke="#2d2d2d" stroke-width="2"/>
-  </symbol>
-</svg>
-<div class="bar noprint" id="bar"></div>
-<div id="wn"></div>
-<main class="sheet" id="sheet"></main>
-<script src="app.js"></script>
+  <div class="toolbar" aria-label="Azioni scheda">
+    <span class="save-state" id="save-state" role="status">Pronto</span>
+    <div class="toolbar-actions">
+      <button class="button button-quiet" id="import-json" type="button">Importa JSON</button>
+      <button class="button button-quiet" id="export-json" type="button">Esporta JSON</button>
+      <button class="button button-quiet" id="clear-sheet" type="button">Svuota scheda</button>
+      <button class="button button-primary" id="print-sheet" type="button"><span aria-hidden="true">&#8595;</span> Stampa / PDF</button>
+    </div>
+  </div>
+  <input id="import-json-input" type="file" accept="application/json" hidden>
+
+  <main class="sheet" id="sheet">
+    <header class="masthead">
+      <div class="wordmark">
+        <div class="logo-lockup"><img class="logo-image" src="SAGA_TEXT.png" alt="SAGA"></div>
+      </div>
+    </header>
+
+    <section class="identity" aria-labelledby="identity-title">
+      <h2 class="sr-only" id="identity-title">Identita</h2>
+      <div class="identity-person">
+        <label class="field field-name"><span>Nome</span><input data-field="Nome" type="text" autocomplete="off"></label>
+        <label class="field field-sex"><span>Sesso</span><input data-field="Sesso" type="text"></label>
+      </div>
+      <div class="identity-progression">
+        <label class="field"><span>Livello</span><input data-field="Livello" type="text" inputmode="numeric"></label>
+        <label class="field"><span>Esperienza</span><input data-field="Esperienza" type="text" inputmode="numeric"></label>
+      </div>
+    </section>
+
+    <section class="characteristics section-block" aria-labelledby="characteristics-title">
+      <div class="section-heading">
+        <span class="section-index"></span>
+        <h2 id="characteristics-title">Caratteristiche</h2>
+      </div>
+      <div class="character-grid">
+        <div class="character"><h2>VIG</h2><span class="character-description">Vigore, resistenza e forza fisica</span><div class="character-control"><input class="character-score" data-stat-score="vig" aria-label="Valore VIG" inputmode="numeric" value="5" readonly><div class="penalty-dots" aria-label="Grado condizione VIG"><button type="button" class="penalty-dot" data-stat-penalty="vig" data-penalty-index="1" data-field="VIG penalita 1" value="0" aria-label="Grado condizione VIG 1" aria-pressed="false"></button><button type="button" class="penalty-dot" data-stat-penalty="vig" data-penalty-index="2" data-field="VIG penalita 2" value="0" aria-label="Grado condizione VIG 2" aria-pressed="false"></button></div></div></div>
+        <div class="character"><h2>IST</h2><span class="character-description">Istinto, riflessi e percezione</span><div class="character-control"><input class="character-score" data-stat-score="ist" aria-label="Valore IST" inputmode="numeric" value="5" readonly><div class="penalty-dots" aria-label="Grado condizione IST"><button type="button" class="penalty-dot" data-stat-penalty="ist" data-penalty-index="1" data-field="IST penalita 1" value="0" aria-label="Grado condizione IST 1" aria-pressed="false"></button><button type="button" class="penalty-dot" data-stat-penalty="ist" data-penalty-index="2" data-field="IST penalita 2" value="0" aria-label="Grado condizione IST 2" aria-pressed="false"></button></div></div></div>
+        <div class="character"><h2>MEN</h2><span class="character-description">Mente, volonta e ragionamento</span><div class="character-control"><input class="character-score" data-stat-score="men" aria-label="Valore MEN" inputmode="numeric" value="5" readonly><div class="penalty-dots" aria-label="Grado condizione MEN"><button type="button" class="penalty-dot" data-stat-penalty="men" data-penalty-index="1" data-field="MEN penalita 1" value="0" aria-label="Grado condizione MEN 1" aria-pressed="false"></button><button type="button" class="penalty-dot" data-stat-penalty="men" data-penalty-index="2" data-field="MEN penalita 2" value="0" aria-label="Grado condizione MEN 2" aria-pressed="false"></button></div></div></div>
+      </div>
+      <div class="level-up-section" aria-label="Incrementi di caratteristica">
+        <p class="level-up-note">Aumenti ai livelli 3, 6 e 9. Valore massimo: 10.</p>
+        <div class="level-up-grid">
+          <label class="level-up"><span>Livello 3</span><select data-field="Aumento livello 3" data-level-up="3" aria-label="Caratteristica da aumentare al livello 3" disabled><option value="">Scegli</option><option value="vig">VIG</option><option value="ist">IST</option><option value="men">MEN</option></select><small data-level-up-status="3">Disponibile dal livello 3</small></label>
+          <label class="level-up"><span>Livello 6</span><select data-field="Aumento livello 6" data-level-up="6" aria-label="Caratteristica da aumentare al livello 6" disabled><option value="">Scegli</option><option value="vig">VIG</option><option value="ist">IST</option><option value="men">MEN</option></select><small data-level-up-status="6">Disponibile dal livello 6</small></label>
+          <label class="level-up"><span>Livello 9</span><select data-field="Aumento livello 9" data-level-up="9" aria-label="Caratteristica da aumentare al livello 9" disabled><option value="">Scegli</option><option value="vig">VIG</option><option value="ist">IST</option><option value="men">MEN</option></select><small data-level-up-status="9">Disponibile dal livello 9</small></label>
+        </div>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <div class="left-column">
+        <section class="section-block origins" aria-labelledby="origins-title">
+          <div class="section-heading"><span class="section-index"></span><h2 id="origins-title">Origini</h2></div>
+          <div class="origins-fields">
+            <label class="field"><span>Lignaggio</span><select data-field="Lignaggio" class="origin-select"><option value="">Scegli lignaggio</option><option value="Nomade">Nomade</option><option value="Popolare">Popolare</option><option value="Discendente">Discendente</option><option value="Militare">Militare</option><option value="Dotto">Dotto</option><option value="Marginale">Marginale</option></select></label>
+            <label class="field"><span>Infanzia</span><select data-field="Infanzia" class="origin-select"><option value="">Scegli infanzia</option><option value="Rigorosa">Rigorosa</option><option value="Vita di strada">Vita di strada</option><option value="Adottato">Adottato</option><option value="Isolato">Isolato</option><option value="Protetto">Protetto</option><option value="Cresciuto in guerra">Cresciuto in guerra</option></select></label>
+            <label class="field field-profession"><span>Professione</span><select data-field="Professione" class="origin-select"><option value="">Scegli professione</option><option value="Esploratore">Esploratore</option><option value="Mercenario">Mercenario</option><option value="Erudito">Erudito</option><option value="Furfante">Furfante</option><option value="Guaritore">Guaritore</option><option value="Artigiano/Inventore">Artigiano/Inventore</option></select></label>
+          </div>
+        </section>
+
+        <section class="section-block talents" aria-labelledby="talents-title">
+          <div class="section-heading"><span class="section-index"></span><h2 id="talents-title">Talenti</h2></div>
+          <div class="talent-list" id="talent-list">
+            <div class="talent-row" data-talent-row>
+              <input data-field="Talento 1 nome" type="text" aria-label="Nome talento 1" placeholder="Nome talento">
+              <input data-field="Talento 1 effetto" type="text" aria-label="Effetto talento 1" placeholder="Effetto o descrizione">
+              <button class="remove-entry" type="button" data-remove-talent aria-label="Rimuovi talento 1">Rimuovi</button>
+            </div>
+          </div>
+          <button class="button add-talent" id="add-talent" type="button">+ Aggiungi talento</button>
+        </section>
+
+        <section class="section-block abilities" aria-labelledby="abilities-title">
+          <div class="section-heading"><span class="section-index"></span><h2 id="abilities-title">Abilita' speciali</h2></div>
+          <div class="ability-list" id="ability-list">
+            <div class="ability-row" data-ability-row>
+              <select data-field="Abilita speciale 1" data-ability-select class="ability-select" aria-label="Scegli abilita speciale 1">
+                <option value="">Scegli un'abilita</option>
+                <option value="Groviglio">Groviglio</option><option value="Attacco speciale">Attacco speciale</option><option value="Blocco">Blocco</option><option value="Comando">Comando</option><option value="Confusione">Confusione</option><option value="Scudo">Scudo</option><option value="Cura Ferite">Cura Ferite</option><option value="Paura">Paura</option><option value="Duplice immagine">Duplice immagine</option><option value="Velocita">Velocita</option><option value="Arma potenziata">Arma potenziata</option><option value="Nube di Nebbia">Nube di Nebbia</option><option value="Pacificare">Pacificare</option><option value="Luce">Luce</option><option value="Ragnatela">Ragnatela</option><option value="Illusione">Illusione</option><option value="Sonno">Sonno</option><option value="Telecinesi">Telecinesi</option><option value="Telepatia">Telepatia</option><option value="Trauma">Trauma</option>
+              </select>
+              <p class="ability-description">Seleziona un'abilita per visualizzarne l'effetto.</p>
+              <button class="remove-entry" type="button" data-remove-ability aria-label="Rimuovi abilita 1">Rimuovi</button>
+            </div>
+          </div>
+          <button class="button add-talent add-ability" id="add-ability" type="button">+ Aggiungi abilita</button>
+        </section>
+
+
+      </div>
+
+      <div class="right-column">
+        <section class="section-block combat" aria-labelledby="combat-title">
+          <div class="section-heading"><span class="section-index"></span><h2 id="combat-title">Combattimento</h2></div>
+          <div class="equipment-grid">
+            <label class="field equipment"><span>Mano princ.</span><input data-field="Mano principale" type="text"></label>
+            <label class="field equipment"><span>Mano sec.</span><input data-field="Mano secondaria" type="text"></label>
+            <label class="field equipment"><span>Corpo</span><input data-field="Corpo" type="text"></label>
+            <label class="field equipment"><span>Zona 1</span><input data-field="Zona 1" type="text"></label>
+            <label class="field equipment"><span>Zona 2</span><input data-field="Zona 2" type="text"></label>
+            <label class="field equipment"><span>Zona 3</span><input data-field="Zona 3" type="text"></label>
+          </div>
+          <div class="resource-grid">
+            <div class="resource"><svg class="resource-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.2 5.2 0 0 0-7.3 0L12 6.3l-1.5-1.5a5.2 5.2 0 0 0-7.3 7.3L12 20.9l8.8-8.8a5.2 5.2 0 0 0 0-7.3Z"></path></svg><span class="resource-name">Salute</span><label><span>Max</span><input data-field="Salute massimo" type="text" inputmode="numeric"></label><label><span>Attuale</span><input data-field="Salute attuale" type="text" inputmode="numeric"></label></div>
+            <div class="resource energy-resource"><svg class="resource-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"></path></svg><span class="resource-name">Energia</span><label><span>Max</span><input data-field="Energia massimo" type="text" inputmode="numeric"></label><label><span>Attuale</span><input data-field="Energia attuale" type="text" inputmode="numeric"></label></div>
+          </div>
+          <div class="combat-values">
+            <label class="field compact combat-value"><span><svg class="combat-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="m2.75 9.25 1.5 2.5 2 1.5m-4.5 0 1 1m1.5-2.5-1.5 1.5m3-1 8.5-8.5v-2h-2l-8.5 8.5"></path></svg>Danno</span><input data-field="Danno" type="text"></label>
+            <label class="field compact combat-value"><span><svg class="combat-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.237 6.289C17.142 5.256 13.36 3.3 12.55 2.474a.748.748 0 0 0-.529-.224.82.82 0 0 0-.532.216A20.312 20.312 0 0 1 3.8 6.409a.749.749 0 0 0-.546.721c0 8.232 1.279 12.515 8.545 14.591a.746.746 0 0 0 .412 0C19.517 19.632 20.75 15.492 20.75 7a.75.75 0 0 0-.513-.711Z"></path><path d="M12 20.219c-6-1.777-7.2-4.9-7.249-12.529a22.815 22.815 0 0 0 7.278-3.7 33.74 33.74 0 0 0 7.219 3.545C19.2 15.281 18.012 18.439 12 20.219Z"></path></svg>Protezione</span><input data-field="Protezione" type="text"></label>
+          </div>
+        </section>
+                <section class="section-block inventory" aria-labelledby="inventory-title">
+          <div class="section-heading"><span class="section-index"></span><h2 id="inventory-title">Inventario</h2></div>
+          <div class="inventory-meta">
+            <label class="field compact resource-field"><span><svg class="inventory-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M11.1792761 10.0089144C9.3857721 9.8086768 7.07299854 10.6085465 5.47667412 12.2077121C3.48343099 14.204503 3.54879682 16.6859789 5.42668828 18.5672127C7.30457973 20.4484465 9.78164682 20.5139287 11.7748899 18.5171379C13.3509061 16.9383166 14.1492183 14.6593166 13.9769254 12.8732082C13.8987291 12.0622975 13.6206011 11.3526688 13.1245076 10.8556923C12.6424991 10.3728259 11.9600987 10.0960901 11.1792761 10.0089144ZM15.1810701 10.2501896 16.9944222 8.43361006 17.6758441 8.88587272C18.2647143 9.27670879 19.0564377 9.20138579 19.5630483 8.69387349C20.1488348 8.10704443 20.1488348 7.15560655 19.5630483 6.5687775C19.3295734 6.33488702 19.0345086 6.1891686 18.7153647 6.14373067L17.9717082 6.03785395 17.8660196 5.29287388C17.8206628 4.973162 17.6752029 4.67757198 17.441728 4.44368151C16.8559415 3.85685245 15.9061941 3.85685245 15.3204076 4.44368151C14.813797 4.9511937 14.7386081 5.74432636 15.1287495 6.33424473L15.5802087 7.01687939 13.7753518 8.8249486C14.0490649 9.00103142 14.3045574 9.20556479 14.5381304 9.4395535C14.7848577 9.68671989 14.9987769 9.95838781 15.1810701 10.2501896ZM11.7106931 8.05982086 13.0835999 6.68447047C12.6398266 5.43768457 12.9292649 4.00561884 13.9061941 3.02695084C15.2730291 1.65768305 17.4891065 1.65768305 18.8559415 3.02695084C19.2284937 3.40016611 19.5064463 3.84475891 19.6782931 4.32823159C20.1609068 4.50038424 20.6047097 4.77883157 20.9772619 5.15204684C22.3440969 6.52131463 22.3440969 8.74133636 20.9772619 10.1106041C20.0003327 11.0892721 18.5708113 11.3792255 17.3262406 10.9346625L15.9255864 12.3378096C16.2987049 14.8358602 15.2507577 17.8642613 13.1848122 19.9338839C10.3939526 22.7297109 6.65437776 22.6308538 4.01232238 19.984096C1.370267 17.3373381 1.27158561 13.5911074 4.06244527 10.7952804C6.14656053 8.7074557 9.20465929 7.65745829 11.7106931 8.05982086Z"/></svg>Razioni</span><input data-field="Razioni" type="text" inputmode="numeric"><small>Max <output id="rations-max">-</output></small></label>
+            <label class="field compact resource-field"><span><svg class="inventory-icon" viewBox="0 -1.5 48 48" aria-hidden="true"><path fill="currentColor" d="M320.857 468.479c-4.328-1.088-6.981-2.637-7.673-4.478H313v-7a3.265 3.265 0 0 1 1-2.257V450.1a4.711 4.711 0 0 1-1.816-2.1H312v-7c0-1.619 1.345-3.033 4-4.2V432c0-4.6 11.068-7 22-7s22 2.4 22 7v7h-.181c-.448 1.205-1.727 2.278-3.819 3.2v2.7a3.9 3.9 0 0 1 2 3.1v7h-.185a3.856 3.856 0 0 1-.895 1.337A2.92 2.92 0 0 1 357 457v7h-.184c-.692 1.841-3.346 3.39-7.673 4.478a66.515 66.515 0 0 1-28.286 0ZM334.88 468h.239c2.036 0 4.011-.087 5.881-.243V465h1v2.665A41.213 41.213 0 0 0 350.59 466H350v-3h1v2.861a16.562 16.562 0 0 1 1.762-.729A13.1 13.1 0 0 0 355 463.919V460.1a22.359 22.359 0 0 1-8.331 2.911 69.635 69.635 0 0 1-23.337 0A22.358 22.358 0 0 1 315 460.1v3.815a13.378 13.378 0 0 0 2.231 1.21 24.543 24.543 0 0 0 5.769 1.8V464h1v3.119a60.16 60.16 0 0 0 8 .822V465h1v2.974Q333.93 468 334.88 468ZM315 457c0 2.088 7.609 5 20 5a56.889 56.889 0 0 0 13.557-1.427c2.923-.724 5.041-1.652 5.962-2.613C350.6 459.864 343.678 461 336 461a64.428 64.428 0 0 1-12.541-1.156c-3.944-.813-6.809-1.993-8.284-3.412A1.111 1.111 0 0 0 315 457Zm20.88 2h.239c2.036 0 4.011-.087 5.881-.243V456h1v2.665a43.03 43.03 0 0 0 8-1.478V455h1v1.86a16.579 16.579 0 0 0 1.762-.728A13.209 13.209 0 0 0 356 454.919V451.1a22.346 22.346 0 0 1-8.331 2.912 69.64 69.64 0 0 1-23.338 0 24.04 24.04 0 0 1-7.914-2.638c-.125-.051-.257-.108-.418-.177v3.718a13.162 13.162 0 0 0 2.231 1.21 24.543 24.543 0 0 0 5.769 1.8V455h1v3h-.642a58.75 58.75 0 0 0 8.643.941V456h1v2.974Q334.93 459 335.88 459Zm-2-7h.239q.949 0 1.88-.026V449h1v2.941a58.734 58.734 0 0 0 8.646-.941H345v-3h1v2.93a24.484 24.484 0 0 0 5.777-1.806A13.171 13.171 0 0 0 354 447.918V444.1a22.352 22.352 0 0 1-8.331 2.912 69.635 69.635 0 0 1-23.337 0A22.36 22.36 0 0 1 314 444.1v3.814a13.127 13.127 0 0 0 2.218 1.205 16.543 16.543 0 0 0 1.781.737V447h1v3.186a43.042 43.042 0 0 0 8 1.478V449h1v2.756C329.869 451.913 331.844 452 333.88 452Zm20.572-2.237c1.012-.6 1.547-1.207 1.547-1.762h-.184A4.3 4.3 0 0 1 354.452 449.762ZM314 441c0 2.088 7.609 5 20 5a51.442 51.442 0 0 0 15.336-1.925A66.045 66.045 0 0 1 338 445a60.165 60.165 0 0 1-14.234-1.544c-4.278-1.088-6.9-2.628-7.583-4.457H316v-.012C314.709 439.658 314 440.369 314 441Zm23.881 2h.239c2.035 0 4.01-.087 5.88-.243V440h1v2.665A41.228 41.228 0 0 0 353.588 441H353v-3h1v2.859a16.568 16.568 0 0 0 1.775-.734A13.092 13.092 0 0 0 358 438.918V435.1c-3.675 2.569-11.875 3.9-20 3.9s-16.325-1.328-20-3.9v3.815a13.107 13.107 0 0 0 2.226 1.207 24.5 24.5 0 0 0 5.774 1.8V439h1v3.119a60.154 60.154 0 0 0 8 .821V440h1v2.974Q336.93 443 337.881 443ZM318 432c0 2.088 7.609 5 20 5s20-2.912 20-5-7.609-5-20-5-20 2.912-20 5Z" transform="translate(-312 -425)"/></svg>Crediti</span><input data-field="Crediti" type="text" inputmode="numeric"></label>
+          </div>
+          <div class="inventory-list" id="inventory-list" aria-live="polite"></div>
+          <button class="button add-talent add-inventory" id="add-inventory" type="button">+ Aggiungi oggetto</button>
+          <div class="slot-summary" id="slot-summary"><span>Slot max <b>(<span data-vig-label>VIG</span> x 2)</b></span><output id="slot-max">-</output><span class="slot-used-label">Slot occupati</span><output id="slot-used">0</output></div>
+        </section>
+      </div>
+    </div>
+    <footer class="sheet-footer"><span>SAGA <i>-</i> Per scrivere la tua storia in solo, o in gruppo</span><span>Una storia, per vivere ogni ambientazione.</span></footer>
+  </main>
 </body>
 </html>
