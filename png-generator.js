@@ -27,6 +27,7 @@ const CONFIG = {
 
 /* ============ Utilità ============ */
 const STORE = 'saga-png-generator';
+const DRAFT = 'saga-png-generator-draft';   // bozza del PNG in modifica (sopravvive al cambio pagina)
 const STATS = [['vig', 'VIG'], ['ist', 'IST'], ['men', 'MEN']];
 const KEYS = { vig: 'stat', ist: 'stat', men: 'stat', dmg: 'dmg', prot: 'prot', hpAdj: 'hp', enAdj: 'en' };
 const MINV = { vig: CONFIG.minStat, ist: CONFIG.minStat, men: CONFIG.minStat, dmg: CONFIG.base.dmg, prot: CONFIG.base.prot };
@@ -55,8 +56,37 @@ const ic = n => `<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill
 
 /* ============ Stato e calcoli ============ */
 const blank = () => ({ id: uid(), nome: 'Nuovo PNG', grado: 1, ruolo: 'Minion', vig: 3, ist: 3, men: 3, dmg: 1, prot: 0, hpAdj: 0, enAdj: 0, az: [], tr: [], extra: [], p1: '', p2: '' });
-let S = blank();
+
+/* Bozza: lo stato in modifica viene salvato a ogni cambiamento e ripristinato
+   all'apertura, così passare a index.html e tornare non fa perdere il lavoro. */
+let draftRestored = false;
+function restoreDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT));
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
+    const b = blank(), p = Object.assign(b, d);
+    if (typeof p.id !== 'string' || !p.id) p.id = uid();
+    if (!CONFIG.roles[p.ruolo]) p.ruolo = 'Minion';
+    p.grado = Math.min(5, Math.max(1, parseInt(p.grado, 10) || 1));
+    for (const k of ['vig', 'ist', 'men', 'dmg', 'prot', 'hpAdj', 'enAdj']) if (!Number.isFinite(p[k])) p[k] = blank()[k];
+    for (const k of ['az', 'tr', 'extra']) if (!Array.isArray(p[k])) p[k] = [];
+    for (const k of ['nome', 'p1', 'p2']) if (typeof p[k] !== 'string') p[k] = blank()[k];
+    // «modificata» = diversa da un PNG appena creato (a parte l'id)
+    const fresh = Object.assign(blank(), { id: p.id });
+    draftRestored = JSON.stringify(fresh) !== JSON.stringify(p);
+    return p;
+  } catch (e) { return null; }
+}
+
+let S = restoreDraft() || blank();
 let saved = load();
+
+function draftState(m) { const el = $('draft-state'); if (el) el.textContent = m; }
+function saveDraft() {
+  let ok = true;
+  try { localStorage.setItem(DRAFT, JSON.stringify(S)); } catch (e) { ok = false; }
+  draftState(ok ? 'Bozza salvata automaticamente' : 'Bozza non salvabile in questo browser');
+}
 
 function calc(p) {
   const r = CONFIG.roles[p.ruolo], b = r.bonus * p.grado;
@@ -91,7 +121,7 @@ function toggle(key, id) {
 }
 function setRuolo(r) { S.ruolo = r; render(); }
 function setGrado(g) { S.grado = g; render(); }
-function setText(k, v) { S[k] = v; renderPoints(); renderSheet(); }
+function setText(k, v) { S[k] = v; renderPoints(); renderSheet(); saveDraft(); }
 function resetPoints() {
   Object.assign(S, { vig: 3, ist: 3, men: 3, dmg: 1, prot: 0, hpAdj: 0, enAdj: 0, az: [], tr: [] });
   render();
@@ -172,7 +202,7 @@ function renderList() {
     (saved.length ? `<div class="item"><button onclick="exportAll()">${ic('down')} Esporta tutti</button></div>` : '');
 }
 
-function render() { renderPoints(); renderForm(); renderSheet(); renderList(); }
+function render() { renderPoints(); renderForm(); renderSheet(); renderList(); saveDraft(); }
 
 /* ============ Salvataggio locale ============ */
 function load() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; } }
@@ -267,3 +297,7 @@ function toast(m) {
 $('toolbar').innerHTML = [['save', 'Salva', 'save()'], ['plus', 'Nuovo', 'newPng()'], ['down', 'Esporta JSON', 'exportCur()'], ['up', 'Importa', 'pickFile()'], ['print', 'Stampa / PDF', 'window.print()']]
   .map(([i, l, f]) => `<button onclick="${f}">${ic(i)} ${l}</button>`).join('');
 render();
+if (draftRestored) { draftState('Bozza ripristinata'); toast('Bozza ripristinata'); }
+// l'ultima modifica non va persa nemmeno se si lascia la pagina subito (es. con il pulsante verso la scheda)
+window.addEventListener('pagehide', saveDraft);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveDraft(); });

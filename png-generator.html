@@ -3,13 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#73181F">
 <title>SAGA — Generatore PNG</title>
-<link rel="stylesheet" href="png-generator.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="page-png">
+<div class="topbar" aria-label="Navigazione">
+  <span class="save-state" id="draft-state" role="status">Pronto</span>
+  <div class="topbar-actions">
+    <a class="button button-quiet nav-switch" href="index.html" title="Torna alla scheda personaggio"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg><span>Scheda personaggio</span></a>
+  </div>
+</div>
 <header class="top">
-  <h1>Generatore PNG</h1>
-  <p class="sub">SAGA — costruisci un Personaggio Non Giocante spendendo punti</p>
+  <div class="logo-lockup"><img class="logo-image" src="SAGA_TEXT.png" alt="SAGA"></div>
+  <div>
+    <h1>Generatore PNG</h1>
+    <p class="sub">SAGA — costruisci un Personaggio Non Giocante spendendo punti</p>
+  </div>
 </header>
 <main class="app">
   <section class="panel" id="editor" aria-label="Costruzione del PNG">
