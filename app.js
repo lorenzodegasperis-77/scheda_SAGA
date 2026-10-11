@@ -27,6 +27,8 @@ function clearSheetFields() {
     }
     field.value = '';
   }
+  // elimina le voci "fuori catalogo" rimaste nei menù dei talenti
+  document.querySelectorAll('[data-talent-select]').forEach(fillTalentSelect);
 }
 
 function exportSheetJson() {
@@ -73,6 +75,14 @@ const originBonuses = {
   Esploratore: { ist: 2 }, Mercenario: { vig: 2 }, Erudito: { men: 2 },
   Furfante: { ist: 1, men: 1 }, Guaritore: { vig: 1, ist: 1 }, 'Artigiano/Inventore': { vig: 1, men: 1 },
 };
+
+/* Catalogo dei talenti: è l'unico punto da modificare per aggiungerne di nuovi.
+   Ogni voce compare nel menù a tendina con il suo nome; la descrizione appare sotto la scelta.
+   Il nome è anche il valore salvato nella scheda: rinominare una voce scollega le schede già salvate. */
+const talentCatalog = [
+  { name: 'Talento placeholder', description: 'Segnaposto: descrivi qui l’effetto del talento.' },
+];
+const talentByName = new Map(talentCatalog.map((talent) => [talent.name, talent]));
 
 const abilityDescriptions = {
   Groviglio: 'Rallenta un bersaglio visibile: la sua IST diminuisce in base al livello abilita finche non supera una prova di VIG.',
@@ -159,6 +169,15 @@ const inventoryCatalog = [
 ];
 
 const inventoryByName = new Map(inventoryCatalog.map(([name, description, slot, capacityBonus = 0]) => [name, { name, description, slot, capacityBonus }]));
+
+// Opzioni del menù abilità: lette una volta sola dall'HTML, così "+ Aggiungi abilita" funziona
+// anche se la prima riga è stata rimossa.
+const abilityOptionsHtml = document.querySelector('[data-ability-select]').innerHTML;
+
+// Come si chiamano i campi delle righe aggiunte/rimovibili (serve a numerarle senza duplicati).
+const talentFieldPattern = /^Talento (\d+)(?: |$)/;
+const abilityFieldPattern = /^Abilita speciale (\d+)$/;
+const inventoryFieldPattern = /^Inventario (\d+) oggetto$/;
 
 function readForm() {
   return getSerializedSheetState();
@@ -256,17 +275,76 @@ function bindField(field) {
   field.addEventListener('change', scheduleSave);
 }
 
-function addTalentRow() {
+// Numero più alto già usato in una lista + 1. Contare le righe darebbe nomi duplicati
+// dopo una rimozione, e due campi con lo stesso nome si sovrascrivono nel salvataggio.
+function nextRowIndex(list, pattern) {
+  const used = [...list.querySelectorAll('[data-field]')]
+    .map((field) => Number(field.dataset.field.match(pattern)?.[1]))
+    .filter(Number.isFinite);
+  return Math.max(0, ...used) + 1;
+}
+
+// Ripristino: crea le righe che hanno dati salvati e non esistono ancora (con il loro numero originale).
+function ensureRows(saved, pattern, fieldNameFor, addRow) {
+  const wanted = new Set(Object.keys(saved).map((key) => key.match(pattern)?.[1]).filter(Boolean).map(Number));
+  for (const index of [...wanted].sort((a, b) => a - b)) {
+    if (!document.querySelector(`[data-field="${fieldNameFor(index)}"]`)) addRow(index);
+  }
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+/* ---------- Talenti ---------- */
+function talentOptionsHtml() {
+  return '<option value="">Scegli un talento</option>'
+    + talentCatalog.map((talent) => `<option value="${escapeHtml(talent.name)}">${escapeHtml(talent.name)}</option>`).join('');
+}
+
+function fillTalentSelect(select) {
+  select.innerHTML = talentOptionsHtml();
+}
+
+// Un talento salvato che non è (più) nel catalogo resta selezionabile, così non si perde.
+function ensureTalentOption(select, name) {
+  if (!name || [...select.options].some((option) => option.value === name)) return;
+  const option = document.createElement('option');
+  option.value = name;
+  option.textContent = `${name} (fuori catalogo)`;
+  select.append(option);
+}
+
+function renderTalentDescription(select) {
+  const row = select.closest('[data-talent-row]');
+  const note = row.querySelector('[data-talent-note]');
+  const entry = talentByName.get(select.value);
+  if (entry) note.value = '';
+  row.querySelector('.talent-description').textContent = entry
+    ? entry.description
+    : note.value || (select.value ? 'Talento fuori catalogo: nessuna descrizione disponibile.' : 'Seleziona un talento per visualizzarne l\'effetto.');
+}
+
+function bindTalentSelect(select) {
+  bindField(select);
+  if (select.dataset.descriptionBound) return;
+  select.dataset.descriptionBound = 'true';
+  select.addEventListener('change', () => renderTalentDescription(select));
+}
+
+function addTalentRow(index) {
   const list = document.querySelector('#talent-list');
-  const index = list.querySelectorAll('[data-talent-row]').length + 1;
+  index = index ?? nextRowIndex(list, talentFieldPattern);
   const row = document.createElement('div');
   row.className = 'talent-row';
   row.dataset.talentRow = '';
-  row.innerHTML = `<input data-field="Talento ${index} nome" type="text" aria-label="Nome talento ${index}" placeholder="Nome talento"><input data-field="Talento ${index} effetto" type="text" aria-label="Effetto talento ${index}" placeholder="Effetto o descrizione"><button class="remove-entry" type="button" data-remove-talent aria-label="Rimuovi talento ${index}">Rimuovi</button>`;
+  row.innerHTML = `<select data-field="Talento ${index}" data-talent-select class="talent-select" aria-label="Scegli talento ${index}">${talentOptionsHtml()}</select><input data-field="Talento ${index} effetto" data-talent-note type="hidden"><p class="talent-description">Seleziona un talento per visualizzarne l'effetto.</p><button class="remove-entry" type="button" data-remove-talent aria-label="Rimuovi talento ${index}">Rimuovi</button>`;
   list.append(row);
   row.querySelectorAll('[data-field]').forEach(bindField);
+  bindTalentSelect(row.querySelector('[data-talent-select]'));
 }
 
+/* ---------- Abilità ---------- */
 function renderAbilityDescription(select) {
   const description = select.closest('[data-ability-row]').querySelector('.ability-description');
   description.textContent = abilityDescriptions[select.value] || 'Seleziona un\'abilita per visualizzarne l\'effetto.';
@@ -279,18 +357,18 @@ function bindAbilitySelect(select) {
   select.addEventListener('change', () => renderAbilityDescription(select));
 }
 
-function addAbilityRow() {
+function addAbilityRow(index) {
   const list = document.querySelector('#ability-list');
-  const index = list.querySelectorAll('[data-ability-row]').length + 1;
-  const firstSelect = list.querySelector('[data-ability-select]');
+  index = index ?? nextRowIndex(list, abilityFieldPattern);
   const row = document.createElement('div');
   row.className = 'ability-row';
   row.dataset.abilityRow = '';
-  row.innerHTML = `<select data-field="Abilita speciale ${index}" data-ability-select class="ability-select" aria-label="Scegli abilita speciale ${index}">${firstSelect.innerHTML}</select><p class="ability-description">Seleziona un'abilita per visualizzarne l'effetto.</p><button class="remove-entry" type="button" data-remove-ability aria-label="Rimuovi abilita ${index}">Rimuovi</button>`;
+  row.innerHTML = `<select data-field="Abilita speciale ${index}" data-ability-select class="ability-select" aria-label="Scegli abilita speciale ${index}">${abilityOptionsHtml}</select><p class="ability-description">Seleziona un'abilita per visualizzarne l'effetto.</p><button class="remove-entry" type="button" data-remove-ability aria-label="Rimuovi abilita ${index}">Rimuovi</button>`;
   list.append(row);
   bindAbilitySelect(row.querySelector('[data-ability-select]'));
 }
 
+/* ---------- Inventario ---------- */
 function updateInventoryRow(row) {
   const item = inventoryByName.get(row.querySelector('[data-inventory-select]').value);
   const description = row.querySelector('[data-inventory-description]');
@@ -299,9 +377,9 @@ function updateInventoryRow(row) {
   row.querySelector('[data-inventory-slots]').textContent = item && quantity !== null ? String(quantity * item.slot) : '-';
 }
 
-function addInventoryRow() {
+function addInventoryRow(index) {
   const list = document.querySelector('#inventory-list');
-  const index = list.querySelectorAll('[data-inventory-row]').length + 1;
+  index = index ?? nextRowIndex(list, inventoryFieldPattern);
   const row = document.createElement('div');
   row.className = 'inventory-row';
   row.dataset.inventoryRow = '';
@@ -318,17 +396,21 @@ function restoreForm() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
     if (saved['Abilita speciali'] && !saved['Abilita speciale 1']) saved['Abilita speciale 1'] = saved['Abilita speciali'];
-    const talentIndexes = Object.keys(saved).map((key) => key.match(/^Talento (\d+) /)?.[1]).filter(Boolean).map(Number);
-    const talentCount = Math.max(1, ...talentIndexes);
-    for (let index = 1; index < talentCount; index += 1) addTalentRow();
-    const abilityIndexes = Object.keys(saved).map((key) => key.match(/^Abilita speciale (\d+)$/)?.[1]).filter(Boolean).map(Number);
-    const abilityCount = Math.max(1, ...abilityIndexes);
-    for (let index = 1; index < abilityCount; index += 1) addAbilityRow();
-    const inventoryIndexes = Object.keys(saved).map((key) => key.match(/^Inventario (\d+) oggetto$/)?.[1]).filter(Boolean).map(Number);
-    for (let index = 0; index < Math.max(0, ...inventoryIndexes); index += 1) addInventoryRow();
+    // Schede salvate con i talenti a testo libero ("Talento N nome" / "Talento N effetto"):
+    // il nome passa nel menù, l'effetto resta salvato nel campo nascosto e viene mostrato come descrizione.
+    for (const key of Object.keys(saved)) {
+      const legacy = key.match(/^Talento (\d+) nome$/);
+      if (legacy && !saved[`Talento ${legacy[1]}`]) saved[`Talento ${legacy[1]}`] = String(saved[key] ?? '').trim();
+    }
+    ensureRows(saved, talentFieldPattern, (index) => `Talento ${index}`, addTalentRow);
+    ensureRows(saved, abilityFieldPattern, (index) => `Abilita speciale ${index}`, addAbilityRow);
+    ensureRows(saved, inventoryFieldPattern, (index) => `Inventario ${index} oggetto`, addInventoryRow);
     for (const field of document.querySelectorAll('[data-field], [data-stat-name], [data-stat-score]')) {
       const key = field.dataset.field || field.dataset.statName || field.dataset.statScore;
-      if (Object.hasOwn(saved, key)) field.value = saved[key];
+      if (Object.hasOwn(saved, key)) {
+        if (field.matches('[data-talent-select]')) ensureTalentOption(field, saved[key]);
+        field.value = saved[key];
+      }
     }
     document.querySelectorAll('[data-stat-penalty]').forEach((dot) => {
       const active = dot.value === '1';
@@ -341,11 +423,14 @@ function restoreForm() {
     saveState.textContent = 'Pronto';
   }
   document.querySelectorAll('[data-ability-select]').forEach(renderAbilityDescription);
+  document.querySelectorAll('[data-talent-select]').forEach(renderTalentDescription);
   refreshCapacities();
 }
 
+document.querySelectorAll('[data-talent-select]').forEach(fillTalentSelect);
 document.querySelectorAll('[data-field], [data-stat-name], [data-stat-score]').forEach(bindField);
 document.querySelectorAll('[data-ability-select]').forEach(bindAbilitySelect);
+document.querySelectorAll('[data-talent-select]').forEach(bindTalentSelect);
 document.querySelectorAll('[data-stat-penalty]').forEach((dot) => {
   dot.addEventListener('click', () => {
     const active = dot.value !== '1';
@@ -386,6 +471,8 @@ document.querySelector('#clear-sheet').addEventListener('click', () => {
   clearSheetFields();
   localStorage.removeItem(storageKey);
   saveState.textContent = 'Scheda svuotata';
+  document.querySelectorAll('[data-ability-select]').forEach(renderAbilityDescription);
+  document.querySelectorAll('[data-talent-select]').forEach(renderTalentDescription);
   refreshCapacities();
 });
 
