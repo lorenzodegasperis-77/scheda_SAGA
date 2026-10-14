@@ -77,8 +77,9 @@
           <div class="section-heading"><span class="section-index"></span><h2 id="talents-title">Talenti</h2></div>
           <div class="talent-list" id="talent-list">
             <div class="talent-row" data-talent-row>
-              <input data-field="Talento 1 nome" type="text" aria-label="Nome talento 1" placeholder="Nome talento">
-              <input data-field="Talento 1 effetto" type="text" aria-label="Effetto talento 1" placeholder="Effetto o descrizione">
+              <select data-field="Talento 1" data-talent-select class="talent-select" aria-label="Scegli talento 1"><option value="">Scegli un talento</option></select>
+              <input data-field="Talento 1 effetto" data-talent-note type="hidden">
+              <p class="talent-description">Seleziona un talento per visualizzarne l'effetto.</p>
               <button class="remove-entry" type="button" data-remove-talent aria-label="Rimuovi talento 1">Rimuovi</button>
             </div>
           </div>

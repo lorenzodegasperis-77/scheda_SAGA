@@ -12,16 +12,17 @@ const CONFIG = {
   minStat: 2,                           // minimo per VIG / IST / MEN
   costo: { stat: 1, dmg: 1, prot: 1, hp: 1, en: 1 }, // punti per ogni +1 (−1 rende lo stesso valore)
   maxAzioni: { Minion: 1, Standard: 1, Boss: 2 },     // consigliato: avviso, non blocco
-  // costo = punti (1, 2 o 3) · en = costo in Energia mostrato nella scheda
+  // costo = punti (1, 2 o 3): è il costo della voce, raggruppa il menù e viene sottratto dai punti quando la scegli
+  // en = costo in Energia mostrato nella scheda (solo azioni)
   azioni: [
-    { id: 'az-1', nome: 'Azione speciale (1 pt)', costo: 1, en: '2 EN', desc: 'Placeholder: descrivi qui l’effetto.' },
-    { id: 'az-2', nome: 'Azione speciale (2 pt)', costo: 2, en: '3 EN', desc: 'Placeholder: descrivi qui l’effetto.' },
-    { id: 'az-3', nome: 'Azione speciale (3 pt)', costo: 3, en: '4 EN', desc: 'Placeholder: descrivi qui l’effetto.' }
+    { id: 'az-1', nome: 'Azione placeholder A', costo: 1, en: '2 EN', desc: 'Placeholder: descrivi qui l’effetto.' },
+    { id: 'az-2', nome: 'Azione placeholder B', costo: 2, en: '3 EN', desc: 'Placeholder: descrivi qui l’effetto.' },
+    { id: 'az-3', nome: 'Azione placeholder C', costo: 3, en: '4 EN', desc: 'Placeholder: descrivi qui l’effetto.' }
   ],
   tratti: [
-    { id: 'tr-1', nome: 'Tratto (1 pt)', costo: 1, desc: 'Placeholder: descrivi qui l’effetto.' },
-    { id: 'tr-2', nome: 'Tratto (2 pt)', costo: 2, desc: 'Placeholder: descrivi qui l’effetto.' },
-    { id: 'tr-3', nome: 'Tratto (3 pt)', costo: 3, desc: 'Placeholder: descrivi qui l’effetto.' }
+    { id: 'tr-1', nome: 'Tratto placeholder A', costo: 1, desc: 'Placeholder: descrivi qui l’effetto.' },
+    { id: 'tr-2', nome: 'Tratto placeholder B', costo: 2, desc: 'Placeholder: descrivi qui l’effetto.' },
+    { id: 'tr-3', nome: 'Tratto placeholder C', costo: 3, desc: 'Placeholder: descrivi qui l’effetto.' }
   ]
 };
 
@@ -35,7 +36,28 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const uid = () => 'NPC-' + Math.random().toString(36).slice(2, 11).toUpperCase();
 const clone = o => JSON.parse(JSON.stringify(o));
-const sel = (list, ids) => list.filter(x => ids.includes(x.id));
+
+/* Tratti e azioni speciali: righe con menù a tendina (più voci per PNG, aggiungibili e rimovibili).
+   Ogni voce ha un costo in punti (1, 2 o 3) definito in CONFIG: sceglierla lo sottrae dai punti
+   disponibili, rimuoverla o cambiarla lo restituisce. In S.az / S.tr una riga vuota vale ''. */
+const PICK = {
+  az: { list: CONFIG.azioni, name: 'Azione speciale', one: 'azione speciale', choose: 'Scegli un’azione speciale', add: 'Aggiungi azione speciale', none: 'Nessuna azione speciale aggiunta.', heading: 'Azioni speciali' },
+  tr: { list: CONFIG.tratti, name: 'Tratto', one: 'tratto', choose: 'Scegli un tratto', add: 'Aggiungi tratto', none: 'Nessun tratto aggiunto.', heading: 'Tratti' }
+};
+const items = (key, p = S) => p[key].map(id => PICK[key].list.find(x => x.id === id)).filter(Boolean);
+// tiene solo righe vuote o con voci esistenti e non ripetute (bozze, PNG salvati e file importati possono contenere altro)
+function cleanPicks(p) {
+  for (const key of Object.keys(PICK)) {
+    const seen = new Set();
+    p[key] = (Array.isArray(p[key]) ? p[key] : []).filter(id => {
+      if (typeof id !== 'string') return false;
+      if (id === '') return true;
+      if (seen.has(id) || !PICK[key].list.some(x => x.id === id)) return false;
+      seen.add(id); return true;
+    });
+  }
+  return p;
+}
 
 const I = {
   save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
@@ -69,7 +91,8 @@ function restoreDraft() {
     if (!CONFIG.roles[p.ruolo]) p.ruolo = 'Minion';
     p.grado = Math.min(5, Math.max(1, parseInt(p.grado, 10) || 1));
     for (const k of ['vig', 'ist', 'men', 'dmg', 'prot', 'hpAdj', 'enAdj']) if (!Number.isFinite(p[k])) p[k] = blank()[k];
-    for (const k of ['az', 'tr', 'extra']) if (!Array.isArray(p[k])) p[k] = [];
+    cleanPicks(p);
+    if (!Array.isArray(p.extra)) p.extra = [];
     for (const k of ['nome', 'p1', 'p2']) if (typeof p[k] !== 'string') p[k] = blank()[k];
     // «modificata» = diversa da un PNG appena creato (a parte l'id)
     const fresh = Object.assign(blank(), { id: p.id });
@@ -96,7 +119,7 @@ function spent(p) {
   const c = CONFIG.costo, b = CONFIG.base;
   let s = STATS.reduce((a, [k]) => a + (p[k] - b.stat) * c.stat, 0);
   s += (p.dmg - b.dmg) * c.dmg + (p.prot - b.prot) * c.prot + p.hpAdj * c.hp + p.enAdj * c.en;
-  return s + sel(CONFIG.azioni, p.az).concat(sel(CONFIG.tratti, p.tr)).reduce((a, x) => a + x.costo, 0);
+  return s + items('az', p).concat(items('tr', p)).reduce((a, x) => a + x.costo, 0);
 }
 const left = () => calc(S).total - spent(S);
 
@@ -112,12 +135,25 @@ function canStep(k, d) {
 
 /* ============ Azioni dell'interfaccia ============ */
 function step(k, d) { if (canStep(k, d)) { S[k] += d; render(); } }
-function toggle(key, id) {
-  const list = key === 'az' ? CONFIG.azioni : CONFIG.tratti, item = list.find(x => x.id === id);
-  const i = S[key].indexOf(id);
-  if (i >= 0) S[key].splice(i, 1);
-  else if (item && left() >= item.costo) S[key].push(id);
-  render();
+function canAdd(key) {
+  return !S[key].includes('') && PICK[key].list.some(x => !S[key].includes(x.id) && left() >= x.costo);
+}
+function addPick(key) {
+  if (!canAdd(key)) return;
+  S[key].push('');
+  render(`pick-${key}-${S[key].length - 1}`);
+}
+function setPick(key, i, id) {
+  if (i < 0 || i >= S[key].length) return;
+  const list = PICK[key].list, it = list.find(x => x.id === id), cur = list.find(x => x.id === S[key][i]);
+  const dup = id && S[key].some((x, j) => j !== i && x === id);
+  const poor = it && left() + (cur ? cur.costo : 0) < it.costo;   // il cambio non può superare i punti disponibili
+  if (!((id && !it) || dup || poor)) S[key][i] = id;
+  render(`pick-${key}-${i}`);
+}
+function removePick(key, i) {
+  S[key].splice(i, 1);
+  render(`add-${key}`);
 }
 function setRuolo(r) { S.ruolo = r; render(); }
 function setGrado(g) { S.grado = g; render(); }
@@ -134,7 +170,7 @@ function renderPoints() {
   const pct = Math.max(0, Math.min(100, (c.total - l) / c.total * 100));
   const warn = [];
   if (l < 0) warn.push(`Hai speso ${-l} punt${-l === 1 ? 'o' : 'i'} in più: togli qualcosa.`);
-  if (S.az.length > max) warn.push(`Per un ${S.ruolo} si consiglia al massimo ${max} azion${max === 1 ? 'e speciale' : 'i speciali'}.`);
+  if (S.az.filter(Boolean).length > max) warn.push(`Per un ${S.ruolo} si consiglia al massimo ${max} azion${max === 1 ? 'e speciale' : 'i speciali'}.`);
   $('points').innerHTML =
     `<div class="pt"><span>Punti disponibili</span><b class="${l < 0 ? 'bad' : ''}">${l}</b><span>/ ${c.total}</span>` +
     `<button class="rs" onclick="resetPoints()" title="Riporta tutto ai valori base">${ic('reset')} Azzera</button></div>` +
@@ -154,12 +190,28 @@ const row = ([k, l, c, h]) => {
     `<b>${val(k)}</b>` +
     `<button aria-label="Aumenta ${l}" onclick="step('${k}',1)" ${canStep(k, 1) ? '' : 'disabled'}>${ic('plus')}</button></div></div>`;
 };
-const pick = (list, key) => list.map(x => {
-  const on = S[key].includes(x.id), dis = !on && left() < x.costo;
-  return `<label class="opt ${on ? 'on' : ''} ${dis ? 'dis' : ''}">` +
-    `<input type="checkbox" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''} onchange="toggle('${key}','${x.id}')">` +
-    `<span class="nm">${esc(x.nome)}</span><b class="cost">${x.costo} pt</b><span class="ds">${esc(x.desc)}</span></label>`;
-}).join('');
+function pickBlock(key) {
+  const P = PICK[key], rows = S[key], chosen = rows.filter(Boolean);
+  const costs = [...new Set(P.list.map(x => x.costo))].sort((a, b) => a - b);
+  const rowHtml = rows.map((id, i) => {
+    const cur = P.list.find(x => x.id === id), curCost = cur ? cur.costo : 0;
+    const groups = costs.map(c => `<optgroup label="${c} ${c === 1 ? 'punto' : 'punti'}">` +
+      P.list.filter(x => x.costo === c).map(x => {
+        const off = x.id !== id && (chosen.includes(x.id) || left() + curCost < x.costo);   // già scelta altrove o troppo cara
+        return `<option value="${esc(x.id)}" ${x.id === id ? 'selected' : ''} ${off ? 'disabled' : ''}>${esc(x.nome)} — ${x.costo} pt</option>`;
+      }).join('') + '</optgroup>').join('');
+    const desc = cur
+      ? `<p class="pick-desc"><span class="pick-cost">${cur.costo} pt</span>${cur.en ? `<span class="pick-cost">${esc(cur.en)}</span>` : ''}${esc(cur.desc)}</p>`
+      : `<p class="pick-desc pick-none">Scegli una voce: il costo in punti viene sottratto subito.</p>`;
+    return `<div class="pick-row"><select id="pick-${key}-${i}" aria-label="${P.name} ${i + 1}" onchange="setPick('${key}',${i},this.value)">` +
+      `<option value="">${P.choose}</option>${groups}</select>` +
+      `<button class="pick-rm" aria-label="Rimuovi ${P.one} ${i + 1}" title="Rimuovi" onclick="removePick('${key}',${i})">${ic('trash')}</button>${desc}</div>`;
+  }).join('');
+  const can = canAdd(key), poor = !can && !rows.includes('');
+  return `<h2 class="sec">${P.heading}</h2>` + (rows.length ? rowHtml : `<p class="empty pick-empty">${P.none}</p>`) +
+    `<button id="add-${key}" class="pick-add" onclick="addPick('${key}')" ${can ? '' : 'disabled'}>${ic('plus')} ${P.add}</button>` +
+    (poor ? `<p class="pick-hint">Punti insufficienti per altre voci.</p>` : '');
+}
 
 function renderForm() {
   $('form').innerHTML =
@@ -170,15 +222,14 @@ function renderForm() {
     `<h2 class="sec">Bersagli</h2>` +
     `<label class="fld"><span>Priorità I</span><input type="text" value="${esc(S.p1)}" oninput="setText('p1',this.value)"></label>` +
     `<label class="fld"><span>Priorità II (facoltativa)</span><input type="text" value="${esc(S.p2)}" oninput="setText('p2',this.value)"></label>` +
-    `<h2 class="sec">Azioni speciali</h2>${pick(CONFIG.azioni, 'az')}` +
-    `<h2 class="sec">Tratti</h2>${pick(CONFIG.tratti, 'tr')}`;
+    pickBlock('az') + pickBlock('tr');
 }
 
 function renderSheet() {
   const c = calc(S);
   const pips = [1, 2, 3, 4, 5].map(i => `<svg class="pip ${i <= S.grado ? 'on' : ''}" viewBox="0 0 10 10" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1"/></svg>`).join('');
   const pri = [['I', S.p1], ['II', S.p2]].filter(([, t]) => t.trim());
-  const az = sel(CONFIG.azioni, S.az), tr = sel(CONFIG.tratti, S.tr);
+  const az = items('az'), tr = items('tr');
   const li = (n, extra, d) => `<li><b>${esc(n)}</b>${extra ? `<em>${esc(extra)}</em>` : ''}<p>${esc(d)}</p></li>`;
   const azH = az.map(a => li(a.nome, a.en, a.desc)).concat((S.extra || []).map(e => li(e.nome, e.cost, e.desc)));
   $('sheet').innerHTML =
@@ -202,7 +253,11 @@ function renderList() {
     (saved.length ? `<div class="item"><button onclick="exportAll()">${ic('down')} Esporta tutti</button></div>` : '');
 }
 
-function render() { renderPoints(); renderForm(); renderSheet(); renderList(); saveDraft(); }
+function render(focusId) {
+  renderPoints(); renderForm(); renderSheet(); renderList(); saveDraft();
+  const el = focusId && $(focusId);
+  if (el) el.focus({ preventScroll: true });   // il form viene ricostruito: riporta il focus sul controllo usato
+}
 
 /* ============ Salvataggio locale ============ */
 function load() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; } }
@@ -215,7 +270,7 @@ function save() {
   if (i < 0) saved.unshift(c); else saved[i] = c;
   persist(); renderList(); toast('PNG salvato');
 }
-function loadPng(id) { const p = saved.find(x => x.id === id); if (p) { S = clone(p); render(); window.scrollTo(0, 0); } }
+function loadPng(id) { const p = saved.find(x => x.id === id); if (p) { S = cleanPicks(clone(p)); render(); window.scrollTo(0, 0); } }
 function dup(id) {
   const p = saved.find(x => x.id === id); if (!p) return;
   const c = clone(p); c.id = uid(); c.nome += ' (copia)';
@@ -229,7 +284,7 @@ function del(id) {
 
 /* ============ Export / import JSON (formato database PNG dell'app SAGA) ============ */
 function toApp(p) {
-  const c = calc(p), A = sel(CONFIG.azioni, p.az), T = sel(CONFIG.tratti, p.tr);
+  const c = calc(p), A = items('az', p), T = items('tr', p);
   return {
     id: p.id, nome: p.nome, grado: p.grado, ruolo: p.ruolo,
     vig: p.vig, ist: p.ist, men: p.men,
@@ -241,7 +296,7 @@ function toApp(p) {
       ...(p.extra || []).map(e => ({ ability_name: e.nome, ability_description: e.desc, ability_cost: e.cost || 'N/A' }))
     ],
     ambientazioni: [],
-    _gen: { hpAdj: p.hpAdj, enAdj: p.enAdj, az: p.az, tr: p.tr, extra: p.extra || [] }
+    _gen: { hpAdj: p.hpAdj, enAdj: p.enAdj, az: p.az.filter(Boolean), tr: p.tr.filter(Boolean), extra: p.extra || [] }
   };
 }
 function fromApp(n) {
@@ -259,7 +314,7 @@ function fromApp(n) {
     p.enAdj = (n.enMax || n.en || 0) - c.en;
     p.extra = (n.abilita || []).map(a => ({ nome: a.ability_name, desc: a.ability_description, cost: a.ability_cost }));
   }
-  return p;
+  return cleanPicks(p);
 }
 function dl(name, data) {
   const a = document.createElement('a');
